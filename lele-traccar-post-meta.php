@@ -59,20 +59,18 @@ function lele_save_traccar_meta_data($post_id) {
     }
 
     // Speichern der Meta-Daten
-    update_post_meta($post_id, 'lele_unique_id', sanitize_text_field($_POST['lele_unique_id']));
     update_post_meta($post_id, 'lele_longitude', sanitize_text_field($_POST['lele_longitude']));
     update_post_meta($post_id, 'lele_latitude', sanitize_text_field($_POST['lele_latitude']));
     update_post_meta($post_id, 'lele_speed', sanitize_text_field($_POST['lele_speed']));
     update_post_meta($post_id, 'lele_altitude', sanitize_text_field($_POST['lele_altitude']));
     update_post_meta($post_id, 'lele_status', sanitize_text_field($_POST['lele_status']));
     update_post_meta($post_id, 'lele_last_update_time', sanitize_text_field($_POST['lele_last_update_time']));
-    update_post_meta($post_id, 'lele_last_record_time', sanitize_text_field($_POST['lele_last_record_time']));
 }
 add_action('save_post', 'lele_save_traccar_meta_data');
 // Meta-Box zum WordPress Admin-Bereich hinzufügen
 add_action('add_meta_boxes', 'lele_meta_box_hinzufuegen');
 function lele_meta_box_hinzufuegen() {
-    add_meta_box('lele_position_aktualisieren', 'Position aktualisieren', 'lele_position_aktualisieren_callback', 'post', 'side', 'high');
+    add_meta_box('lele_position_aktualisieren', 'Position', 'lele_position_aktualisieren_callback', 'post', 'side', 'high');
 }
 
 // Callback-Funktion für die Meta-Box
@@ -80,7 +78,7 @@ function lele_position_aktualisieren_callback($post) {
     // Sicherheitsüberprüfung
     wp_nonce_field('lele_position_aktualisieren', 'lele_position_aktualisieren_nonce');
     
-    echo '<input type="button" id="lele_position_aktualisieren_button" class="button button-primary" value="Position aktualisieren">';
+    echo '<input type="button" id="lele_position_aktualisieren_button" class="button button-primary" value="Aktualisieren">';
 }
 
 // JavaScript für den Button-Click
@@ -94,7 +92,10 @@ function lele_admin_footer_script() {
                     'action': 'lele_position_aktualisieren',
                     'post_id': <?php echo get_the_ID(); ?>
                 };
-                
+
+                // Fügen Sie Debugging-Ausgabe hinzu
+                console.log('AJAX-Antwort:', parsedResponse);
+
                 $.post(ajaxurl, data, function(response) {
                     // Parse die Antwort als JSON
                     var parsedResponse = JSON.parse(response);
@@ -102,7 +103,22 @@ function lele_admin_footer_script() {
                     // Aktualisiere die Felder mit den neuen Daten
                     $('#lele_latitude').val(parsedResponse.latitude);
                     $('#lele_longitude').val(parsedResponse.longitude);
-                    // ... (andere Felder)
+                    $('#lele_speed').val(parsedResponse.speed);
+                    $('#lele_altitude').val(parsedResponse.altitude);
+                    $('#lele_status').val(parsedResponse.status);
+                    $('#lele_last_update_time').val(parsedResponse.last_update_time);
+                    $('#lele_last_record_time').val(parsedResponse.last_record_time);
+
+                    // Aktualisieren Sie auch die Meta-Box-Felder
+                    $('#lele_longitude').val(parsedResponse.longitude);
+                    $('#lele_latitude').val(parsedResponse.latitude);
+                    $('#lele_speed').val(parsedResponse.speed);
+                    $('#lele_altitude').val(parsedResponse.altitude);
+                    $('#lele_status').val(parsedResponse.status);
+                    $('#lele_last_update_time').val(parsedResponse.last_update_time);
+
+                    // Debugging-Ausgabe für die Antwort
+                    console.log('Server-Antwort:', response);
 
                     alert('Position aktualisiert');
                 });
@@ -142,7 +158,7 @@ function lele_position_aktualisieren_ajax_handler() {
 
     if ($decoded_response !== null) {
         // Zeit des letzten GPS-Records
-        $last_record_time = strtotime($decoded_response['fixTime']);
+        $last_record_time = strtotime(get_post_meta($post_id, 'lele_last_update_time', true));
         $current_time = time();
 
         // Zeitdifferenz in Minuten
